@@ -185,4 +185,18 @@ router.patch(
  */
 router.get('/admin/agents', adminController.listAgents);
 
+/**
+ * @swagger
+ * /api/admin/clients:
+ *   get:
+ *     summary: List all client users
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Client users list
+ */
+router.get('/admin/clients', adminController.listClients);
+
 module.exports = router;

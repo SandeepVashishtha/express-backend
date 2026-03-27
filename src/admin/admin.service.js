@@ -11,7 +11,7 @@ const normalizeFiling = (row) => ({
   status: row.status,
   applicantName: row.applicant_name || 'N/A',
   assignedAgentId: row.assigned_agent_id,
-  assignedAgentName: row.assigned_agent_name,
+  assignedAgentName: row.agent_name,
   submittedAt: row.submitted_at,
   updatedAt: row.updated_at,
 });
@@ -53,7 +53,7 @@ const buildListQuery = ({ query }) => {
       status,
       COALESCE(applicant_name, applicant_email, 'N/A') AS applicant_name,
       assigned_agent_id,
-      assigned_agent_name,
+      agent_name,
       assigned_at,
       submitted_at,
       updated_at,
@@ -71,7 +71,7 @@ const buildListQuery = ({ query }) => {
       status,
       COALESCE(applicant_name, payload->>'applicantName', payload->>'applicant', payload->>'fullName', payload->>'name', 'N/A') AS applicant_name,
       assigned_agent_id,
-      assigned_agent_name,
+      agent_name,
       assigned_at,
       submitted_at,
       updated_at,
@@ -141,9 +141,8 @@ const updatePatentAssignment = async ({ filingId, agentId }) => {
   const result = await db.query(
     `
       UPDATE patent_filings
-      SET agent_id = $2,
       SET assigned_agent_id = $2,
-          assigned_agent_name = (SELECT name FROM users WHERE id = $2),
+          agent_name = (SELECT name FROM users WHERE id = $2),
           assigned_at = NOW(),
           status = CASE
             WHEN status = 'PENDING' THEN 'ASSIGNED'
@@ -160,7 +159,7 @@ const updatePatentAssignment = async ({ filingId, agentId }) => {
         status,
         COALESCE(applicant_name, applicant_email, 'N/A') AS applicant_name,
         assigned_agent_id,
-        assigned_agent_name,
+        agent_name,
         assigned_at,
         submitted_at,
         updated_at,
@@ -176,9 +175,8 @@ const updateNonPatentAssignment = async ({ filingId, agentId }) => {
   const result = await db.query(
     `
       UPDATE non_patent_filings
-      SET agent_id = $2,
       SET assigned_agent_id = $2,
-          assigned_agent_name = (SELECT name FROM users WHERE id = $2),
+          agent_name = (SELECT name FROM users WHERE id = $2),
           assigned_at = NOW(),
           status = CASE
             WHEN status = 'PENDING' THEN 'ASSIGNED'
@@ -195,7 +193,7 @@ const updateNonPatentAssignment = async ({ filingId, agentId }) => {
         status,
         COALESCE(applicant_name, payload->>'applicantName', payload->>'applicant', payload->>'fullName', payload->>'name', 'N/A') AS applicant_name,
         assigned_agent_id,
-        assigned_agent_name,
+        agent_name,
         assigned_at,
         submitted_at,
         updated_at,
@@ -255,7 +253,7 @@ const setFilingDecision = async ({ filingId, status }) => {
         status,
         COALESCE(applicant_name, applicant_email, 'N/A') AS applicant_name,
         assigned_agent_id,
-        assigned_agent_name,
+        agent_name,
         assigned_at,
         submitted_at,
         updated_at,
@@ -287,7 +285,7 @@ const setFilingDecision = async ({ filingId, status }) => {
         status,
         COALESCE(applicant_name, payload->>'applicantName', payload->>'applicant', payload->>'fullName', payload->>'name', 'N/A') AS applicant_name,
         assigned_agent_id,
-        assigned_agent_name,
+        agent_name,
         assigned_at,
         submitted_at,
         updated_at,
@@ -339,9 +337,29 @@ const listAgents = async () => {
   }));
 };
 
+const listClients = async () => {
+  const result = await db.query(
+    `
+      SELECT id, name, email, role, created_at
+      FROM users
+      WHERE role = 'client'
+      ORDER BY created_at DESC
+    `
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    createdAt: row.created_at,
+  }));
+};
+
 module.exports = {
   listFilings,
   assignAgentToFiling,
   setFilingDecision,
   listAgents,
+  listClients,
 };

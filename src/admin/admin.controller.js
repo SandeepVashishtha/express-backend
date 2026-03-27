@@ -37,10 +37,16 @@ const listAgents = asyncHandler(async (req, res) => {
   res.status(200).json({ data });
 });
 
+const listClients = asyncHandler(async (req, res) => {
+  const data = await adminService.listClients();
+  res.status(200).json({ data });
+});
+
 module.exports = {
   listAdminFilings,
   assignAgentToFiling,
   reassignAgentToFiling,
   setFilingDecision,
   listAgents,
+  listClients,
 };

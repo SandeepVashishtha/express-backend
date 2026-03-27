@@ -86,6 +86,27 @@ const migrate = async () => {
     );
 
     await db.query(`
+      ALTER TABLE patent_filings
+      ADD COLUMN IF NOT EXISTS assigned_agent_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS agent_name VARCHAR(120),
+      ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
+    `);
+
+    await db.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'patent_filings' AND column_name = 'agent_id'
+        ) THEN
+          EXECUTE 'UPDATE patent_filings SET assigned_agent_id = agent_id WHERE assigned_agent_id IS NULL';
+          EXECUTE 'ALTER TABLE patent_filings DROP COLUMN agent_id';
+        END IF;
+      END $$;
+    `);
+
+    await db.query(`
       CREATE TABLE IF NOT EXISTS non_patent_filings (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -118,6 +139,27 @@ const migrate = async () => {
     await db.query(
       'CREATE INDEX IF NOT EXISTS idx_non_patent_filings_type_submitted_at ON non_patent_filings(filing_type, submitted_at DESC)'
     );
+
+    await db.query(`
+      ALTER TABLE non_patent_filings
+      ADD COLUMN IF NOT EXISTS assigned_agent_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS agent_name VARCHAR(120),
+      ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
+    `);
+
+    await db.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'non_patent_filings' AND column_name = 'agent_id'
+        ) THEN
+          EXECUTE 'UPDATE non_patent_filings SET assigned_agent_id = agent_id WHERE assigned_agent_id IS NULL';
+          EXECUTE 'ALTER TABLE non_patent_filings DROP COLUMN agent_id';
+        END IF;
+      END $$;
+    `);
 
     console.log('Migration completed successfully.');
   } catch (error) {
